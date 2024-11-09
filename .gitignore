@@ -1,0 +1,18 @@
+# Archivos generados por Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Configuración de entorno virtual (si lo tienes en la carpeta del proyecto)
+venv/
+env/
+
+# Archivos específicos de PyCharm
+.idea/
+
+# Archivos de Streamlit (si no deseas incluir configuraciones)
+.streamlit/
