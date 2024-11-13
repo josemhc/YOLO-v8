@@ -1,74 +1,40 @@
-import time
 import streamlit as st
-import cv2
-from ultralytics import YOLO  # YOLOv8
-import numpy as np
 
-# Cargar el modelo YOLOv8 entrenado
-model = YOLO('C:/Users/josem/OneDrive/Escritorio/Parcial 2/Parcial 2/best (3).pt')
-
-# Nombre e icono de la pagina
 st.set_page_config(
     page_title="Proyecto corte 2",
     page_icon=""
 )
+import time
+import cv2
+from ultralytics import YOLO  # YOLOv8
+from functions.mostrar_inventario import inventario
+from functions.mostrar_inventario import mostrar_inventario
+from functions.configST import configurarStreamlit
+from functions.openAI import chat
 
-# Se muestra el logo de D1
-st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Tiendas_D1_logo.svg/768px-Tiendas_D1_logo.svg.png",
-         width=200)
+# Cargar el modelo YOLOv8 entrenado
+model = YOLO('C:/Users/josem/OneDrive/Escritorio/best (3).pt')
 
-# Se personaliza el titulo con un estilo
-st.markdown(
-    "<h1 style='color: white;'>Bienvenido al inventario de tiendas D1 - Detección de compras y/o hurtos</h1>",
-    unsafe_allow_html=True)
+configurarStreamlit()
 
-st.write("Sistema en tiempo real para la detección de personas y productos utilizando un modelo YOLOv8.")
+# Contenedores de video, inventario y mensaje
 
-# Inventario inicial de los productos (sin detecciones al empezar)
-inventario = {
-    'yogurt-yogoyogo': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/1047/1047469.png'},
-    'Papas-margarita-pollo': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/3050/3050268.png'},
-    'coca-cola': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/5718/5718243.png'},
-    'crema-colgate': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/1386/1386860.png'}
-}
+video_container = st.empty()
+mensaje_container = st.empty()
+inventario_container = st.empty()
 
-# Contador de detección para cada producto para compararlo con los nuevos productos detectados en cada frame
+# Definir variables a utilizar, entre ellas arreglo de contador de detección para cada producto
+# para compararlo con los nuevos productos detectados en cada frame, y boleano de persona detectada
 conteo_productos = {
     'yogurt-yogoyogo': 0,
     'Papas-margarita-pollo': 0,
     'coca-cola': 0,
     'crema-colgate': 0
 }
-
-# Variable para detectar si hay una persona en el frame anterior
 persona_detectada_anteriormente = False
+cap = cv2.VideoCapture(0)
 
-# Crear el contenedor vacío para el video que es dinámico y se actualiza por cada frame
-video_container = st.empty()
 
-# Crear el contenedor vacío para el inventario que es dinámico y se actualiza con cada detección
-inventario_container = st.empty()
-
-# Contenedor para mostrar el mensaje de "Compra realizada"
-mensaje_container = st.empty()
-
-# Usar la cámara para la detección en tiempo real
-cap = cv2.VideoCapture(1)
-
-# Función para mostrar el inventario con barras de progreso, de 0 a 10 productos, irá cambiando el color de rojo a verde respectivamente
-def mostrar_inventario():
-    with inventario_container.container():
-        st.subheader("Inventario Actual")
-        for producto, info in inventario.items():
-            st.image(info['imagen'], width=50)
-            st.markdown(f"<strong>{producto}</strong>", unsafe_allow_html=True)
-            progreso = info['cantidad'] / 10  # Supongamos que 10 es la cantidad máxima
-            barra_color = "green" if info['cantidad'] >= 5 else "orange" if info['cantidad'] >= 2 else "red"
-            st.progress(progreso)
-            st.markdown(f"<span style='color:{barra_color};'>{info['cantidad']} unidades</span>",
-                        unsafe_allow_html=True)
-
-# Función para detectar en tiempo real los objetos del inventario
 def deteccion_tiempo_real():
     global persona_detectada_anteriormente
 
@@ -85,7 +51,8 @@ def deteccion_tiempo_real():
         results = model(frame)
 
         # Contadores temporales de los productos detectados en este frame
-        detecciones_frame_actual = {'yogurt-yogoyogo': 0, 'Papas-margarita-pollo': 0, 'coca-cola': 0, 'crema-colgate': 0}
+        detecciones_frame_actual = {'yogurt-yogoyogo': 0, 'Papas-margarita-pollo': 0, 'coca-cola': 0,
+                                    'crema-colgate': 0}
         persona_detectada = False
 
         for result in results:
@@ -122,7 +89,7 @@ def deteccion_tiempo_real():
 
         # Si el inventario se ha actualizado, mostrarlo
         if inventario_actualizado:
-            mostrar_inventario()
+            mostrar_inventario(inventario_container)
 
         # Si la persona desaparece y uno o varios productos también desaparecen, mostrar el mensaje de "Compra realizada"
         if persona_antes and not persona_detectada:
@@ -149,7 +116,9 @@ def deteccion_tiempo_real():
         # Delay para que no capture tan rápido
         time.sleep(0.1)
 
+
     cap.release()
+
 
 # Botón para iniciar la detección
 if st.button("Iniciar Detección"):
@@ -158,3 +127,5 @@ if st.button("Iniciar Detección"):
 # Botón para detener la detección
 if st.button("Detener Detección"):
     cap.release()
+
+chat()
