@@ -17,7 +17,7 @@ client = OpenAI(api_key=api_key)
 def chatCompletion(question, historial, inventario):
     prompt = f"""
     Debes responder a las preguntas que realice el usuario, teniendo en cuenta
-    el historial de la conversacion y el inventario de productos:
+    el historial de la conversacion y el inventario de productos (no es necesario brindar imagenes):
 
     pregunta:
     {question}

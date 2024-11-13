@@ -21,7 +21,7 @@ inventario_container = st.empty()
 if "deteccion_activa" not in st.session_state:
     st.session_state.deteccion_activa = False
 if "cap" not in st.session_state:
-    st.session_state.cap = cv2.VideoCapture(0)
+    st.session_state.cap = None  # Inicializamos como None para manejar el reinicio
 
 # Variables para conteo de productos
 conteo_productos = {
@@ -31,8 +31,13 @@ conteo_productos = {
     'crema-colgate': 0
 }
 
+def iniciar_camara():
+    if st.session_state.cap is None or not st.session_state.cap.isOpened():
+        st.session_state.cap = cv2.VideoCapture(0)  # Reiniciar la cámara
+
 def deteccion_tiempo_real():
     global conteo_productos
+    iniciar_camara()  # Inicializar/reiniciar la cámara
     persona_detectada_anteriormente = False
     productos_anteriores = {key: 0 for key in conteo_productos.keys()}
     persona_antes = False
@@ -89,7 +94,10 @@ def deteccion_tiempo_real():
         video_container.image(frame_rgb, channels="RGB", use_column_width=True)
         time.sleep(0.1)
 
-    st.session_state.cap.release()
+    # Liberar la cámara solo si se cierra la detección
+    if st.session_state.cap is not None:
+        st.session_state.cap.release()
+        st.session_state.cap = None
 
 # Botón para iniciar la detección
 if st.button("Iniciar Detección"):
@@ -100,7 +108,9 @@ if st.button("Iniciar Detección"):
 # Botón para detener la detección
 if st.button("Detener Detección"):
     st.session_state.deteccion_activa = False
-    st.session_state.cap.release()
+    if st.session_state.cap is not None:
+        st.session_state.cap.release()
+        st.session_state.cap = None
 
 # Llamada al chat para que siempre esté disponible
 chat(inventario)
