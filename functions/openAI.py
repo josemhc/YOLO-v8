@@ -13,7 +13,7 @@ def text_to_speech(text):
     st.audio(audio_file.read(), format="audio/mp3", start_time=0, autoplay=True)
     audio_file.close()
 
-def chat():
+def chat(inventario):
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -39,7 +39,7 @@ def chat():
         with st.chat_message("user"):
             st.write(prompt)
 
-        response = chatCompletion(prompt, st.session_state.messages)
+        response = chatCompletion(prompt, st.session_state.messages, inventario)
         st.session_state.messages.append({"role": "user", "content": prompt})
 
 

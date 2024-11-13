@@ -14,22 +14,25 @@ client = OpenAI(api_key=api_key)
 
 # Le indica al modelo la pregunta actual del usuario y le da contexto de la conversacion
 # guardandolo en una variable prompt
-def chatCompletion(question, historial):
+def chatCompletion(question, historial, inventario):
     prompt = f"""
     Debes responder a las preguntas que realice el usuario, teniendo en cuenta
-    el historial de la conversacion:
+    el historial de la conversacion y el inventario de productos:
 
     pregunta:
     {question}
 
     historial:
     {historial}
+    
+    inventario:
+    {inventario}
     """
     # Utiliza el metodo create para crear una respuesta del modelo de acuerdo al prompt anterior
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "Eres un asistente sarcastico y burletero"},
+            {"role": "system", "content": "Eres un asistente de una tienda de productos llamada 'D1'"},
             {"role": "user", "content": f"{prompt}"}
         ]
     )
