@@ -1,6 +1,17 @@
 from utils import chatCompletion
+from gtts import gTTS
+
 
 import streamlit as st
+
+
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='es')
+    tts.save("response.mp3")
+    # Reproducir el archivo de audio generado
+    audio_file = open("response.mp3", "rb")
+    st.audio(audio_file.read(), format="audio/mp3", start_time=0, autoplay=True)
+    audio_file.close()
 
 def chat():
     if "messages" not in st.session_state:
@@ -35,3 +46,5 @@ def chat():
         with st.chat_message("assistant"):
                 st.write(response)
         st.session_state.messages.append({"role": "assistant", "content": response})
+
+        text_to_speech(response)
