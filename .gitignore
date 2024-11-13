@@ -16,3 +16,5 @@ env/
 
 # Archivos de Streamlit (si no deseas incluir configuraciones)
 .streamlit/
+
+.env
