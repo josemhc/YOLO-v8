@@ -1,11 +1,10 @@
-import streamlit as st
 import time
 import cv2
 from ultralytics import YOLO  # YOLOv8
-from functions.mostrar_inventario import inventario
-from functions.mostrar_inventario import mostrar_inventario
+from functions.mostrar_inventario import inventario, mostrar_inventario
 from functions.configST import configurarStreamlit
 from functions.openAI import chat
+import streamlit as st
 
 # Cargar el modelo YOLOv8 entrenado
 model = YOLO('C:/Users/josem/OneDrive/Escritorio/best (3).pt')
@@ -17,11 +16,13 @@ video_container = st.empty()
 mensaje_container = st.empty()
 inventario_container = st.empty()
 
-# Manejo del estado con session_state
-if "deteccion_activa" not in st.session_state:
+# Inicializar session_state para guardar el frame e inventario
+if 'frame_actual' not in st.session_state:
+    st.session_state.frame_actual = None
+if 'inventario_actualizado' not in st.session_state:
+    st.session_state.inventario_actualizado = False
+if 'deteccion_activa' not in st.session_state:
     st.session_state.deteccion_activa = False
-if "cap" not in st.session_state:
-    st.session_state.cap = None  # Inicializamos como None para manejar el reinicio
 
 # Variables para conteo de productos
 conteo_productos = {
@@ -31,26 +32,32 @@ conteo_productos = {
     'crema-colgate': 0
 }
 
-def iniciar_camara():
-    if st.session_state.cap is None or not st.session_state.cap.isOpened():
-        st.session_state.cap = cv2.VideoCapture(0)  # Reiniciar la cámara
+# Contador de frames por producto
+frames_detectados = {producto: 0 for producto in conteo_productos.keys()}
+frames_ausentes = {producto: 0 for producto in conteo_productos.keys()}
+
+mostrar_inventario(inventario_container)
 
 def deteccion_tiempo_real():
-    global conteo_productos
-    iniciar_camara()  # Inicializar/reiniciar la cámara
-    persona_detectada_anteriormente = False
-    productos_anteriores = {key: 0 for key in conteo_productos.keys()}
-    persona_antes = False
+
+    cap = cv2.VideoCapture(1)
+
+    if not cap.isOpened():
+        st.error("No se puede acceder a la cámara.")
+        return
 
     while st.session_state.deteccion_activa:
-        ret, frame = st.session_state.cap.read()
+        ret, frame = cap.read()
         if not ret:
-            st.error("No se puede acceder a la cámara.")
-            break
+          st.error("No se puede leer el frame de la cámara.")
+          break
 
+        # Realizar detección
         results = model(frame)
         detecciones_frame_actual = {key: 0 for key in conteo_productos.keys()}
-        persona_detectada = False
+      # Resetear contador de frames
+        for producto in conteo_productos:
+            frames_ausentes[producto] += 1  # Incrementar el contador de frames ausentes
 
         for result in results:
             for obj in result.boxes.data:
@@ -58,59 +65,57 @@ def deteccion_tiempo_real():
                 etiqueta = model.names[clase]
                 confianza = obj[4]
 
-                if confianza >= 0.2:
-                    if etiqueta == 'person':
-                        persona_detectada = True
-                    if etiqueta in detecciones_frame_actual:
-                        detecciones_frame_actual[etiqueta] += 1
+                if confianza >= 0.6 and etiqueta in conteo_productos:
+                    detecciones_frame_actual[etiqueta] += 1
+                    frames_detectados[etiqueta] += 1  # Incrementar el contador de frames detectados
+                    frames_ausentes[etiqueta] = 0  # Reiniciar el contador de ausentes cuando el producto es detectado
 
-        # Actualizar inventario si hay cambios
-        inventario_actualizado = False
+ # Actualizar inventario solo si el producto ha estado en pantalla por 10 frames seguidos
         for producto, cantidad_detectada in detecciones_frame_actual.items():
-            cantidad_anterior = conteo_productos[producto]
-            if cantidad_detectada != cantidad_anterior:
-                inventario[producto]['cantidad'] += (cantidad_detectada - cantidad_anterior)
-                conteo_productos[producto] = cantidad_detectada
-                inventario_actualizado = True
+            if frames_detectados[producto] >= 10:  # Si el producto ha estado 10 frames en pantalla
+                cantidad_anterior = conteo_productos[producto]
+                if cantidad_detectada != cantidad_anterior:
+                    inventario[producto]['cantidad'] += (cantidad_detectada - cantidad_anterior)
+                    conteo_productos[producto] = cantidad_detectada
+                    st.session_state.inventario_actualizado = True
 
-        if inventario_actualizado:
-            mostrar_inventario(inventario_container)
+        # Eliminar producto si ha estado ausente durante 10 frames
+        for producto, frames_perdidos in frames_ausentes.items():
+            if frames_perdidos >= 10:  # Si el producto ha estado ausente durante 10 frames
+                if conteo_productos[producto] > 0:
+                    inventario[producto]['cantidad'] = 0  # Eliminar producto
+                    conteo_productos[producto] = 0
+                    st.session_state.inventario_actualizado = True
 
-        # Mensaje de compra realizada
-        if persona_antes and not persona_detectada:
-            for producto, cantidad in conteo_productos.items():
-                if cantidad == 0 and productos_anteriores[producto] > 0:
-                    with mensaje_container:
-                        st.warning(f"Compra realizada del producto {producto}")
-                        time.sleep(1)
-                    break
-
-        productos_anteriores = detecciones_frame_actual.copy()
-        persona_antes = persona_detectada
-
-        # Mostrar resultados en la interfaz
+        # Mostrar frame con detecciones
         frame = results[0].plot()
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         video_container.image(frame_rgb, channels="RGB", use_column_width=True)
-        time.sleep(0.1)
+         # Actualizar inventario
+        if st.session_state.inventario_actualizado:
+            mostrar_inventario(inventario_container)
+            st.session_state.inventario_actualizado = False
+            # Control de frecuencia de actualización
+        time.sleep(0.05)
+    cap.release()
 
-    # Liberar la cámara solo si se cierra la detección
-    if st.session_state.cap is not None:
-        st.session_state.cap.release()
-        st.session_state.cap = None
+# Funciones de control
+def iniciar_deteccion():
+    for producto in inventario:
+        inventario[producto]['cantidad'] = 0
+    st.session_state.deteccion_activa = True
+    deteccion_tiempo_real()
+
+def detener_deteccion():
+    st.session_state.deteccion_activa = False
 
 # Botón para iniciar la detección
 if st.button("Iniciar Detección"):
-    if not st.session_state.deteccion_activa:
-        st.session_state.deteccion_activa = True
-        deteccion_tiempo_real()
+    iniciar_deteccion()
 
 # Botón para detener la detección
 if st.button("Detener Detección"):
-    st.session_state.deteccion_activa = False
-    if st.session_state.cap is not None:
-        st.session_state.cap.release()
-        st.session_state.cap = None
+    detener_deteccion()
 
 # Llamada al chat para que siempre esté disponible
 chat(inventario)

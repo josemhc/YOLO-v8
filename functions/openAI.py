@@ -1,9 +1,37 @@
 from utils import chatCompletion
 from gtts import gTTS
+import speech_recognition as sr
 
 
 import streamlit as st
 
+def listen_audio():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.write("Escuchando...")
+        audio = recognizer.listen(source)
+    try:
+        user_input = recognizer.recognize_google(audio, language="es-ES")
+        st.write(f"Has dicho: {user_input}")
+        return user_input
+    except sr.UnknownValueError:
+        st.write("No se pudo entender el audio.")
+        return ""
+    except sr.RequestError as e:
+        st.write(f"Error de reconocimiento de voz: {e}")
+        return ""
+
+
+# Callback para actualizar el input del usuario
+def submit(inventario):
+    user_input = st.session_state.user_input
+    if user_input:
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        print(inventario)
+        bot_response = chatCompletion(user_input, st.session_state.messages, inventario)
+        st.session_state.messages.append({"role": "assistant", "content": bot_response})
+        text_to_speech(bot_response)
+        st.session_state.user_input = ""
 
 def text_to_speech(text):
     tts = gTTS(text=text, lang='es')
@@ -14,6 +42,10 @@ def text_to_speech(text):
     audio_file.close()
 
 def chat(inventario):
+
+    if "user_input" not in st.session_state:
+        st.session_state.user_input = ""
+
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
@@ -33,18 +65,27 @@ def chat(inventario):
         st.session_state.messages.append({"role": "assistant", "content": saludo})
 
 
-    prompt = st.chat_input("Say something")
+    # Capturar la entrada del usuario con un botón para audio
+    if st.button("🎤 Escuchar"):
+        # Llamar a la función para escuchar audio y actualizar el input del usuario
+        print("Escuchando audio")
+        audio_input = listen_audio()
+        print("Audio escuchado")
+        if audio_input:
+            st.session_state.user_input = audio_input
+            submit(inventario)
 
-    if prompt:
-        with st.chat_message("user"):
-            st.write(prompt)
-
-        response = chatCompletion(prompt, st.session_state.messages, inventario)
-        st.session_state.messages.append({"role": "user", "content": prompt})
+    st.text_input("Escribe tu mensaje:", key="user_input", on_change=submit(inventario))
 
 
-        with st.chat_message("assistant"):
-                st.write(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+    # if prompt:
+    #     with st.chat_message("user"):
+    #         st.write(prompt)
 
-        text_to_speech(response)
+    #     response = chatCompletion(prompt, st.session_state.messages, inventario)
+    #     st.session_state.messages.append({"role": "user", "content": prompt})
+
+
+    #     with st.chat_message("assistant"):
+    #             st.write(response)
+    #     st.session_state.messages.append({"role": "assistant", "content": response})

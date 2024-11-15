@@ -1,10 +1,10 @@
 import streamlit as st
 
 inventario = {
-    'yogurt-yogoyogo': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/1047/1047469.png'},
-    'Papas-margarita-pollo': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/3050/3050268.png'},
-    'coca-cola': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/5718/5718243.png'},
-    'crema-colgate': {'cantidad': 0, 'imagen': 'https://cdn-icons-png.flaticon.com/128/1386/1386860.png'}
+    'yogurt-yogoyogo': {'cantidad': 0, 'precio': '6 lucas', 'imagen': 'https://cdn-icons-png.flaticon.com/128/1047/1047469.png'},
+    'Papas-margarita-pollo': {'cantidad': 0, 'precio':'4 lucas','imagen': 'https://cdn-icons-png.flaticon.com/128/3050/3050268.png'},
+    'coca-cola': {'cantidad': 0, 'precio':'3 lucas', 'imagen': 'https://cdn-icons-png.flaticon.com/128/5718/5718243.png'},
+    'crema-colgate': {'cantidad': 0, 'precio':'6 lucas','imagen': 'https://cdn-icons-png.flaticon.com/128/1386/1386860.png'}
 }
 
 def mostrar_inventario(inventario_container):
