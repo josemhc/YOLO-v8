@@ -27,6 +27,7 @@ def submit(inventario):
     user_input = st.session_state.user_input
     if user_input:
         st.session_state.messages.append({"role": "user", "content": user_input})
+        st.write("Procesando...")
         print(inventario)
         bot_response = chatCompletion(user_input, st.session_state.messages, inventario)
         st.session_state.messages.append({"role": "assistant", "content": bot_response})
@@ -51,20 +52,6 @@ def chat(inventario):
 
     st.title("Preguntale tus dudas a nuestro esclavo")
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-
-    if len(st.session_state.messages) == 0:
-
-        with st.chat_message("assistant"):
-            saludo = "Hola, en que te puedo ayudar hoy"
-            st.write(saludo)
-
-        st.session_state.messages.append({"role": "assistant", "content": saludo})
-
-
     # Capturar la entrada del usuario con un botón para audio
     if st.button("🎤 Escuchar"):
         # Llamar a la función para escuchar audio y actualizar el input del usuario
@@ -77,6 +64,18 @@ def chat(inventario):
 
     st.text_input("Escribe tu mensaje:", key="user_input", on_change=submit(inventario))
 
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+
+    if len(st.session_state.messages) == 0:
+
+        with st.chat_message("assistant"):
+            saludo = "Hola, en que te puedo ayudar hoy"
+            st.write(saludo)
+
+        st.session_state.messages.append({"role": "assistant", "content": saludo})
 
     # if prompt:
     #     with st.chat_message("user"):

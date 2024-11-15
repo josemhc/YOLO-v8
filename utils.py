@@ -6,11 +6,11 @@ from openai import OpenAI
 load_dotenv()
 
 # Obtener la clave de API desde la variable de entorno
-api_key = os.getenv('OPENAI_API_KEY2')
+api_key2 = os.getenv('OPENAI_API_KEY2')
 
 # Usar la clave en la creación del cliente OpenAI
 
-client = OpenAI(api_key='OPENAI_API_KEY2')
+client = OpenAI(api_key=api_key2)
 
 
 # Le indica al modelo la pregunta actual del usuario y le da contexto de la conversacion
@@ -19,7 +19,8 @@ def chatCompletion(question, historial, inventario):
     prompt = f"""
     Debes responder a la pregunta del usuario basándote en el historial de la conversación y la información del inventario de productos.
     
-    Si la pregunta se refiere a uno o mas productos, tu respuesta debe basarse solo en el inventario.
+    Si la pregunta se refiere a la cantidad de uno o mas productos, tu respuesta debe basarse solo en el inventario, si los productos estan agotados,
+    puedes decir que se agotaron recientemente.
     
     Pregunta:
     {question}
